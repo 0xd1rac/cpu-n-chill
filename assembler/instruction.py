@@ -1,99 +1,118 @@
 class Instruction:
-    """Base class for an instruction"""
-    def __init__(self, mnemonic, operands, line_num):
-        self.mnemonic = mnemonic # opcode or the name of the assembly instruction, eg: MOV, ADD, SUB, JUMP
-        self.operands = operands # arguments passed to the instruction,eg: in ADD R1, R2, the operands are R1 and R2
-        self.line_num = line_num # line the src assembly file where this instruction appears
+    """Base class for an instruction."""
+    
+    def __init__(self, opcode, operands, line_number):
+        """
+        :param opcode: The name of the instruction (e.g., MOV, ADD, SUB, B)
+        :param operands: The list of operands for the instruction
+        :param line_number: The line number in the source assembly file
+        """
+        self.opcode = opcode
+        self.operands = operands
+        self.line_number = line_number
 
-    """
-    function to convert the assembly instruction to machine code (binary or hex repr)
-    """
     def encode(self, label_addresses=None, current_address=0):
         """
-        label_address: dictionary that stores labels and their corresponding mem addr
-        current_address: current memmory address of the instruction being encoded
+        Converts the assembly instruction into machine code (binary/hex) - 32-bit binary representation.
+
+        :param label_addresses: Dictionary mapping labels to their memory addresses
+        :param current_address: Memory address of the instruction being encoded
+        :return: Encoded machine code (integer representation)
         """
         raise NotImplementedError("Subclasses must implement encode()")
 
-class MovInstruction(Instruction):
+
+class MoveInstruction(Instruction):
     """
-    MOV Rd, #imm
-    Simplified encoding:
+    MOV destination_register, immediate_value
+
+    Encoding Bit Layout:
       bits [31:28] = 1 (opcode indicator for MOV)
-      bits [27:16] = destination register number (Rd)
+      bits [27:16] = destination register number
       bits [15:0]  = immediate value (lower 16 bits)
     """
-    def __init__(self, rd, imm, line_num):
-        super().__init__("MOV", [rd, imm], line_num)
-        self.rd = rd       # e.g., "R0", "R1", etc.
-        self.imm = imm     # integer value
-    
-    def encoder(self, label_address=None, current_address=0):
-        rd_num = int(self.rd[1:])  # assume register format "R<number>"
-        code = (1 << 28) | (rd_num << 16) | (self.imm & 0xFFFF)
-        return code 
-    
+
+    def __init__(self, destination_register, immediate_value, line_number):
+        super().__init__("MOV", [destination_register, immediate_value], line_number)
+        self.destination_register = destination_register
+        self.immediate_value = immediate_value
+
+    def encode(self, label_addresses=None, current_address=0):
+        dest_reg_number = int(self.destination_register[1:])  # Convert "R<number>" to an integer
+        machine_code = (1 << 28) | (dest_reg_number << 16) | (self.immediate_value & 0xFFFF)
+        return machine_code
+
+
 class AddInstruction(Instruction):
     """
-    ADD Rd, Rn, Rm
-    Simplified encoding:
+    ADD destination_register, source_register_1, source_register_2
+
+    Encoding:
       bits [31:28] = 2 (opcode indicator for ADD)
-      bits [27:16] = destination register number (Rd)
-      bits [15:8]  = first source register (Rn)
-      bits [7:0]   = second source register (Rm)
+      bits [27:16] = destination register number
+      bits [15:8]  = first source register
+      bits [7:0]   = second source register
     """
-    def __init__(self, rd, rn, rm, line_num):
-        super().__init__("ADD", [rd, rn, rm], line_num)
-        self.rd = rd
-        self.rn = rn
-        self.rm = rm
+
+    def __init__(self, destination_register, source_register_1, source_register_2, line_number):
+        super().__init__("ADD", [destination_register, source_register_1, source_register_2], line_number)
+        self.destination_register = destination_register
+        self.source_register_1 = source_register_1
+        self.source_register_2 = source_register_2
 
     def encode(self, label_addresses=None, current_address=0):
-        rd_num = int(self.rd[1:])
-        rn_num = int(self.rn[1:])
-        rm_num = int(self.rm[1:])
-        code = (2 << 28) | (rd_num << 16) | (rn_num << 8) | rm_num
-        return code
+        dest_reg_number = int(self.destination_register[1:])
+        src1_reg_number = int(self.source_register_1[1:])
+        src2_reg_number = int(self.source_register_2[1:])
+        machine_code = (2 << 28) | (dest_reg_number << 16) | (src1_reg_number << 8) | src2_reg_number
+        return machine_code
 
-class SubInstruction(Instruction):
+
+class SubtractInstruction(Instruction):
     """
-    SUB Rd, Rn, Rm
-    Simplified encoding:
+    SUB destination_register, source_register_1, source_register_2
+
+    Encoding:
       bits [31:28] = 3 (opcode indicator for SUB)
-      bits [27:16] = destination register number (Rd)
-      bits [15:8]  = first source register (Rn)
-      bits [7:0]   = second source register (Rm)
+      bits [27:16] = destination register number
+      bits [15:8]  = first source register
+      bits [7:0]   = second source register
     """
-    def __init__(self, rd, rn, rm, line_num):
-        super().__init__("SUB", [rd, rn, rm], line_num)
-        self.rd = rd
-        self.rn = rn
-        self.rm = rm
+
+    def __init__(self, destination_register, source_register_1, source_register_2, line_number):
+        super().__init__("SUB", [destination_register, source_register_1, source_register_2], line_number)
+        self.destination_register = destination_register
+        self.source_register_1 = source_register_1
+        self.source_register_2 = source_register_2
 
     def encode(self, label_addresses=None, current_address=0):
-        rd_num = int(self.rd[1:])
-        rn_num = int(self.rn[1:])
-        rm_num = int(self.rm[1:])
-        code = (3 << 28) | (rd_num << 16) | (rn_num << 8) | rm_num
-        return code
-    
+        dest_reg_number = int(self.destination_register[1:])
+        src1_reg_number = int(self.source_register_1[1:])
+        src2_reg_number = int(self.source_register_2[1:])
+        machine_code = (3 << 28) | (dest_reg_number << 16) | (src1_reg_number << 8) | src2_reg_number
+        return machine_code
+
+
 class BranchInstruction(Instruction):
     """
     B label
-    Simplified encoding for branch:
+
+    Encoding:
       bits [31:28] = 4 (opcode for branch)
-      bits [27:0]  = branch offset (in number of instructions, relative to next instruction)
+      bits [27:0]  = branch offset (relative to the next instruction)
     """
-    def __init__(self, label, line_num):
-        super().__init__("B", [label], line_num)
-        self.label = label  # target label name
+
+    def __init__(self, label, line_number):
+        super().__init__("B", [label], line_number)
+        self.label = label  # Target label name
 
     def encode(self, label_addresses=None, current_address=0):
         if label_addresses is None or self.label not in label_addresses:
-            raise ValueError(f"Label '{self.label}' not found (line {self.line_num}).")
+            raise ValueError(f"Label '{self.label}' not found (line {self.line_number}).")
+
         target_address = label_addresses[self.label]
-        # Compute offset in bytes; subtract current_address and the size of the branch instruction (4 bytes)
-        # Then convert to number of instructions (each 4 bytes)
+        # Compute offset in bytes (subtract current address and size of branch instruction)
+        # Convert to number of instructions (assuming each instruction is 4 bytes)
         offset = (target_address - current_address - 4) // 4  
-        code = (4 << 28) | (offset & 0x0FFFFFFF)
-        return code
+        machine_code = (4 << 28) | (offset & 0x0FFFFFFF)
+        return machine_code
